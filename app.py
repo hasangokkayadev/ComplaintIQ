@@ -22,25 +22,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# API URL'si
-API_BASE_URL = "http://localhost:8000"
+# API URL'si - Environment variable'dan oku
+API_BASE_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def call_api(endpoint: str, data: dict = None):
     """API çağrısı yapar"""
     try:
         url = f"{API_BASE_URL}{endpoint}"
         if data:
-            response = requests.post(url, json=data)
+            response = requests.post(url, json=data, timeout=10)
         else:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)
         
         if response.status_code == 200:
             return response.json()
         else:
             st.error(f"API Hatası: {response.status_code}")
             return None
-    except requests.exceptions.RequestException:
-        st.error("API bağlantısı kurulamadı. Lütfen backend servisi çalıştırıldığından emin olun.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"API bağlantısı kurulamadı. Lütfen backend servisi çalıştırıldığından emin olun.\n\nHata: {str(e)}")
         return None
 
 def main():
