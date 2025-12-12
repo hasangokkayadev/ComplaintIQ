@@ -732,6 +732,15 @@ def show_system_info():
 # CSS stilleri
 st.markdown("""
 <style>
+.main > div {
+    padding-top: 2rem;
+}
+.stButton > button {
+    width: 100%;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def show_business_analysis():
     """İşletme analizi sayfası"""
     st.header("🏢 İşletme Şikayet Analizi")
@@ -1078,14 +1087,6 @@ def show_cross_platform_analysis():
                     file_name=f"{product_input.replace(' ', '_')}_coklu_platform_analizi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv"
                 )
-    .main > div {
-        padding-top: 2rem;
-    }
-    .stButton > button {
-        width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
