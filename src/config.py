@@ -41,15 +41,18 @@ BUSINESS_RULES = {
     "min_confidence_threshold": 0.6,
     "max_prediction_time": 0.1,  # saniye
     "supported_categories": [
-        "Delivery Issues",
-        "Billing Issues", 
-        "Product Quality",
-        "Customer Service",
-        "Technical Support",
-        "Return/Refund",
-        "Website Issues",
-        "Service Outage",
-        "Fraud Issues"
+        "Ürün Kalite Sorunu",
+        "Yanlış Ürün",
+        "Eksik Ürün",
+        "Kargo Gecikmesi",
+        "Kargo Firması Problemi",
+        "İade/Değişim Sorunu",
+        "Ödeme/Fatura Sorunu",
+        "Müşteri Hizmetleri Sorunu",
+        "Paketleme/Ambalaj Problemi",
+        "Ürün Açıklaması Yanıltıcı",
+        "Hizmet Kalite Sorunu",
+        "Teknik/Uygulama Sorunu"
     ],
     "text_limits": {
         "min_length": 10,

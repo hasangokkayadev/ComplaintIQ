@@ -63,6 +63,9 @@ def main():
         "📊 Toplu İşlem",
         "💾 Veri Toplama",
         "📈 Analiz ve Raporlar",
+        "🏢 İşletme Analizi",
+        "🛍️ Ürün Analizi",
+        "🔄 Çoklu Platform Analizi",
         "⚙️ Sistem Bilgileri"
     ])
     
@@ -76,6 +79,12 @@ def main():
         show_data_collection()
     elif page == "📈 Analiz ve Raporlar":
         show_analytics()
+    elif page == "🏢 İşletme Analizi":
+        show_business_analysis()
+    elif page == "🛍️ Ürün Analizi":
+        show_product_analysis()
+    elif page == "🔄 Çoklu Platform Analizi":
+        show_cross_platform_analysis()
     elif page == "⚙️ Sistem Bilgileri":
         show_system_info()
 
@@ -83,13 +92,17 @@ def show_home_page():
     """Ana sayfa"""
     
     col1, col2, col3 = st.columns(3)
-    
+
+    # API'den gerçek verileri al
+    info = call_api("/info")
+
     with col1:
-        st.metric("🎯 Kategori Sayısı", "9", "Desteklenen")
-    
+        category_count = len(info.get('categories', [])) if info else "12"
+        st.metric("🎯 Kategori Sayısı", category_count, "Desteklenen")
+
     with col2:
         st.metric("⚡ Tahmin Hızı", "< 100ms", "Ortalama")
-    
+
     with col3:
         st.metric("✅ Doğruluk", "85%+", "Model Performansı")
     
@@ -116,21 +129,52 @@ def show_home_page():
     
     # Desteklenen kategoriler
     st.subheader("📋 Desteklenen Kategoriler")
-    
-    categories = {
-        "🚚 Delivery Issues": "Teslimat problemleri, kargo gecikmeleri",
-        "💰 Billing Issues": "Faturalandırma hataları, ödeme sorunları",
-        "⭐ Product Quality": "Ürün kalitesi, kusurlu ürünler",
-        "👥 Customer Service": "Müşteri hizmetleri davranışları",
-        "🔧 Technical Support": "Teknik destek, kurulum problemleri",
-        "↩️ Return/Refund": "İade işlemleri, para iadesi",
-        "🌐 Website Issues": "Web sitesi problemleri",
-        "⚠️ Service Outage": "Hizmet kesintileri",
-        "🔐 Fraud Issues": "Dolandırıcılık, güvenlik ihlalleri"
-    }
-    
-    for category, description in categories.items():
-        st.write(f"**{category}** - {description}")
+
+    # API'den gerçek kategorileri al
+    categories_data = call_api("/categories/info")
+
+    if categories_data:
+        categories = {}
+        for cat_info in categories_data:
+            emoji_map = {
+                "Ürün Kalite Sorunu": "⭐",
+                "Yanlış Ürün": "🔄",
+                "Eksik Ürün": "❌",
+                "Kargo Gecikmesi": "🚚",
+                "Kargo Firması Problemi": "📦",
+                "İade/Değişim Sorunu": "↩️",
+                "Ödeme/Fatura Sorunu": "💰",
+                "Müşteri Hizmetleri Sorunu": "👥",
+                "Paketleme/Ambalaj Problemi": "📦",
+                "Ürün Açıklaması Yanıltıcı": "⚠️",
+                "Hizmet Kalite Sorunu": "⚠️",
+                "Teknik/Uygulama Sorunu": "🔧"
+            }
+
+            emoji = emoji_map.get(cat_info['category'], "📋")
+            categories[f"{emoji} {cat_info['category']}"] = cat_info['description']
+
+        for category, description in categories.items():
+            st.write(f"**{category}** - {description}")
+    else:
+        # Fallback - statik kategoriler
+        categories = {
+            "🚚 Kargo Gecikmesi": "Teslimat problemleri, kargo gecikmeleri",
+            "💰 Ödeme/Fatura Sorunu": "Faturalandırma hataları, ödeme sorunları",
+            "⭐ Ürün Kalite Sorunu": "Ürün kalitesi, kusurlu ürünler",
+            "👥 Müşteri Hizmetleri Sorunu": "Müşteri hizmetleri davranışları",
+            "🔧 Teknik/Uygulama Sorunu": "Teknik destek, kurulum problemleri",
+            "↩️ İade/Değişim Sorunu": "İade işlemleri, para iadesi",
+            "📦 Paketleme/Ambalaj Problemi": "Hasarlı paketler, yanlış ambalajlama",
+            "⚠️ Ürün Açıklaması Yanıltıcı": "Yanlış ürün açıklamaları",
+            "⚠️ Hizmet Kalite Sorunu": "Hizmet kesintileri",
+            "📦 Kargo Firması Problemi": "Kargo firması hataları",
+            "🔄 Yanlış Ürün": "Yanlış gönderilen ürünler",
+            "❌ Eksik Ürün": "Eksik parça veya bileşenler"
+        }
+
+        for category, description in categories.items():
+            st.write(f"**{category}** - {description}")
     
     st.markdown("---")
     
@@ -492,66 +536,114 @@ def show_analytics():
     
     # Sistem bilgileri
     st.subheader("📊 Model İstatistikleri")
-    
+
     info = call_api("/info")
     if info:
         col1, col2, col3, col4 = st.columns(4)
-        
+
         with col1:
             st.metric("Toplam Kategori", len(info.get('categories', [])))
-        
+
         with col2:
             st.metric("Model Türü", info.get('model_type', 'N/A'))
-        
+
         with col3:
             st.metric("Son Güncelleme", "2024-12-08")
-        
+
         with col4:
-            st.metric("API Versiyon", "1.0.0")
-    
+            st.metric("API Versiyon", info.get('version', '1.0.0'))
+
     st.markdown("### 📋 Desteklenen Kategoriler")
-    
+
     if info and 'categories' in info:
-        categories_df = pd.DataFrame({
-            'Kategori': info['categories'],
-            'Açıklama': [
-                "Teslimat problemleri, kargo gecikmeleri",
-                "Faturalandırma hataları, ödeme sorunları", 
-                "Ürün kalitesi, kusurlu ürünler",
-                "Müşteri hizmetleri davranışları",
-                "Teknik destek, kurulum problemleri",
-                "İade işlemleri, para iadesi",
-                "Web sitesi problemleri",
-                "Hizmet kesintileri",
-                "Dolandırıcılık, güvenlik ihlalleri"
-            ][:len(info['categories'])]
-        })
-        
-        st.dataframe(categories_df, use_container_width=True)
+        # API'den kategori bilgilerini al
+        categories_data = call_api("/categories/info")
+
+        if categories_data:
+            categories_list = []
+            for cat_info in categories_data:
+                categories_list.append({
+                    'Kategori': cat_info['category'],
+                    'Açıklama': cat_info['description'],
+                    'Öncelik': cat_info['priority_suggestion'],
+                    'Anahtar Kelimeler': ', '.join(cat_info['common_keywords'][:3])
+                })
+
+            categories_df = pd.DataFrame(categories_list)
+            st.dataframe(categories_df, use_container_width=True)
+        else:
+            # Fallback - statik kategoriler
+            categories_df = pd.DataFrame({
+                'Kategori': info['categories'],
+                'Açıklama': [
+                    "Ürün kalitesi, kusurlu ürünler",
+                    "Yanlış gönderilen ürünler",
+                    "Eksik parça veya bileşenler",
+                    "Teslimat gecikmeleri",
+                    "Kargo firması hataları",
+                    "İade işlemleri, para iadesi",
+                    "Faturalandırma hataları",
+                    "Müşteri hizmetleri davranışları",
+                    "Hasarlı paketler",
+                    "Yanlış ürün açıklamaları",
+                    "Hizmet kesintileri",
+                    "Teknik destek problemleri"
+                ][:len(info['categories'])]
+            })
+            st.dataframe(categories_df, use_container_width=True)
     
     st.markdown("### 🎯 Performance Metrikleri")
-    
-    st.info("""
-    **Model Performansı:**
-    - Doğruluk: %85+
-    - Precision (Weighted): %83+
-    - Recall (Weighted): %84+  
-    - F1-Score (Weighted): %83+
-    - Ortalama Tahmin Süresi: < 100ms
-    """)
+
+    # API'den gerçek performans verilerini al
+    stats = call_api("/stats")
+
+    if stats:
+        performance_info = f"""
+        **Model Performansı:**
+        - Doğruluk: {stats.get('model_accuracy', '%85+')}
+        - Precision (Weighted): {stats.get('precision_weighted', '%83+')}
+        - Recall (Weighted): {stats.get('recall_weighted', '%84+')}
+        - F1-Score (Weighted): {stats.get('f1_weighted', '%83+')}
+        - Ortalama Tahmin Süresi: {stats.get('average_prediction_time', '< 100ms')}
+        """
+        st.info(performance_info)
+    else:
+        # Fallback - statik metrikler
+        st.info("""
+        **Model Performansı:**
+        - Doğruluk: %85+
+        - Precision (Weighted): %83+
+        - Recall (Weighted): %84+
+        - F1-Score (Weighted): %83+
+        - Ortalama Tahmin Süresi: < 100ms
+        """)
     
     st.markdown("### 📈 Kullanım İstatistikleri")
-    
-    # Örnek istatistikler (gerçek uygulamada API'den gelecek)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("Günlük İstekler", "1,247", "+12%")
-        st.metric("Başarılı Tahminler", "1,189", "+15%")
-    
-    with col2:
-        st.metric("Ortalama Güven", "87.3%", "+2%")
-        st.metric("Toplam İşlenen", "15,432", "+8%")
+
+    # API'den gerçek istatistikleri al
+    stats = call_api("/stats")
+
+    if stats:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric("Günlük İstekler", stats.get('daily_requests', "1,247"), stats.get('requests_growth', "+12%"))
+            st.metric("Başarılı Tahminler", stats.get('successful_predictions', "1,189"), stats.get('predictions_growth', "+15%"))
+
+        with col2:
+            st.metric("Ortalama Güven", stats.get('average_confidence', "87.3%"), stats.get('confidence_growth', "+2%"))
+            st.metric("Toplam İşlenen", stats.get('total_processed', "15,432"), stats.get('processed_growth', "+8%"))
+    else:
+        # Fallback - statik istatistikler
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric("Günlük İstekler", "1,247", "+12%")
+            st.metric("Başarılı Tahminler", "1,189", "+15%")
+
+        with col2:
+            st.metric("Ortalama Güven", "87.3%", "+2%")
+            st.metric("Toplam İşlenen", "15,432", "+8%")
 
 def show_system_info():
     """Sistem bilgileri sayfası"""
@@ -562,14 +654,28 @@ def show_system_info():
     
     with col1:
         st.subheader("🔧 Teknik Bilgiler")
-        st.info("""
-        **Model Bilgileri:**
-        - Algoritma: Logistic Regression
-        - Özellik Çıkarma: TF-IDF (5000 features)
-        - Eğitim Tarihi: 2024-12-08
-        - Veri Seti: 12,000 şikayet
-        - Kategori Sayısı: 9
-        """)
+        # API'den gerçek model bilgilerini al
+        info = call_api("/info")
+
+        if info:
+            model_info = f"""
+            **Model Bilgileri:**
+            - Algoritma: {info.get('model_type', 'Logistic Regression')}
+            - Özellik Çıkarma: TF-IDF ({info.get('features', '5000')} features)
+            - Eğitim Tarihi: {info.get('training_date', '2024-12-08')}
+            - Veri Seti: {info.get('dataset_size', '12,000')} şikayet
+            - Kategori Sayısı: {len(info.get('categories', []))}
+            """
+            st.info(model_info)
+        else:
+            st.info("""
+            **Model Bilgileri:**
+            - Algoritma: Logistic Regression
+            - Özellik Çıkarma: TF-IDF (5000 features)
+            - Eğitim Tarihi: 2024-12-08
+            - Veri Seti: 12,000 şikayet
+            - Kategori Sayısı: 12
+            """)
         
         st.subheader("🚀 Deployment")
         st.info("""
@@ -626,6 +732,352 @@ def show_system_info():
 # CSS stilleri
 st.markdown("""
 <style>
+def show_business_analysis():
+    """İşletme analizi sayfası"""
+    st.header("🏢 İşletme Şikayet Analizi")
+
+    st.markdown("""
+    Belirli bir işletmeye ait şikayetleri analiz edin.
+    Tüm platformlardan (Şikayetvar, Google Maps, Trendyol, Hepsiburada) verileri toplayıp analiz edebilirsiniz.
+    """)
+
+    # İşletme seçimi
+    business_name = st.text_input("İşletme Adı:", placeholder="Örnek: Trendyol, Hepsiburada, Amazon")
+
+    if business_name:
+        # Platform seçimi
+        platforms = st.multiselect(
+            "Analiz yapılacak platformlar:",
+            ["Şikayetvar", "Google Maps", "Trendyol", "Hepsiburada"],
+            default=["Şikayetvar", "Google Maps", "Trendyol", "Hepsiburada"]
+        )
+
+        if st.button("🔍 İşletme Analizi Başlat", type="primary"):
+            with st.spinner(f"{business_name} için şikayetler analiz ediliyor..."):
+                # Mock data - gerçek uygulamada scraperlar çalıştırılacak
+                mock_results = {
+                    "Şikayetvar": [
+                        {"text": "Ürün teslim edilmemiş, çok uzun sürdü", "date": "2024-12-01", "rating": 1},
+                        {"text": "Müşteri hizmetleri çok kaba davrandı", "date": "2024-12-05", "rating": 1}
+                    ],
+                    "Google Maps": [
+                        {"text": "Siparişim yanlış geldi, iade süreci zor", "date": "2024-11-28", "rating": 2},
+                        {"text": "Faturalandırma hatası var", "date": "2024-12-10", "rating": 1}
+                    ],
+                    "Trendyol": [
+                        {"text": "Ürün hasarlı geldi, iade alamadım", "date": "2024-12-03", "rating": 1}
+                    ],
+                    "Hepsiburada": [
+                        {"text": "Kargo çok gecikti, müşteri hizmetleri cevap vermedi", "date": "2024-12-07", "rating": 1}
+                    ]
+                }
+
+                # Analiz sonuçları
+                st.subheader("📊 Analiz Sonuçları")
+
+                # Toplam şikayet sayısı
+                total_complaints = sum(len(results) for platform, results in mock_results.items() if platform in platforms)
+                st.metric("Toplam Şikayet Sayısı", total_complaints)
+
+                # Platform dağılımı
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("### 📋 Platform Dağılımı")
+                    platform_counts = {platform: len(results) for platform, results in mock_results.items() if platform in platforms}
+                    if platform_counts:
+                        fig = px.pie(
+                            values=list(platform_counts.values()),
+                            names=list(platform_counts.keys()),
+                            title="Şikayetlerin Platform Dağılımı"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    st.markdown("### ⭐ Puan Dağılımı")
+                    ratings = [item['rating'] for platform, results in mock_results.items() if platform in platforms for item in results]
+                    if ratings:
+                        fig = px.histogram(
+                            x=ratings,
+                            title="Puan Dağılımı",
+                            labels={'x': 'Puan', 'y': 'Şikayet Sayısı'}
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                # Kategori analizi
+                st.markdown("### 🎯 Kategori Analizi")
+
+                # Mock kategori tahminleri
+                category_predictions = {
+                    "Kargo Gecikmesi": 3,
+                    "Müşteri Hizmetleri Sorunu": 2,
+                    "Ürün Kalite Sorunu": 2,
+                    "İade/Değişim Sorunu": 1
+                }
+
+                fig = px.bar(
+                    x=list(category_predictions.keys()),
+                    y=list(category_predictions.values()),
+                    title="Şikayet Kategori Dağılımı",
+                    labels={'x': 'Kategori', 'y': 'Şikayet Sayısı'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Detaylı şikayet listesi
+                st.markdown("### 📋 Detaylı Şikayet Listesi")
+
+                all_complaints = []
+                for platform, results in mock_results.items():
+                    if platform in platforms:
+                        for complaint in results:
+                            all_complaints.append({
+                                "Platform": platform,
+                                "Tarih": complaint['date'],
+                                "Puan": complaint['rating'],
+                                "Şikayet": complaint['text'],
+                                "Kategori": "Kargo Gecikmesi"  # Mock kategori
+                            })
+
+                if all_complaints:
+                    df_complaints = pd.DataFrame(all_complaints)
+                    st.dataframe(df_complaints, use_container_width=True)
+
+                    # CSV indirme
+                    csv = df_complaints.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Sonuçları CSV olarak indir",
+                        data=csv,
+                        file_name=f"{business_name}_sikayet_analizi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+
+def show_product_analysis():
+    """Ürün analizi sayfası"""
+    st.header("🛍️ Ürün Şikayet Analizi")
+
+    st.markdown("""
+    Belirli bir ürüne ait şikayetleri analiz edin.
+    Ürün adı veya URL'si ile arama yapabilirsiniz.
+    """)
+
+    # Ürün seçimi
+    product_input = st.text_input("Ürün Adı veya URL:", placeholder="Örnek: iPhone 15 Pro Max 256GB")
+
+    if product_input:
+        # Platform seçimi
+        platforms = st.multiselect(
+            "Analiz yapılacak platformlar:",
+            ["Trendyol", "Hepsiburada"],
+            default=["Trendyol", "Hepsiburada"]
+        )
+
+        if st.button("🔍 Ürün Analizi Başlat", type="primary"):
+            with st.spinner(f"{product_input} için şikayetler analiz ediliyor..."):
+                # Mock data - gerçek uygulamada scraperlar çalıştırılacak
+                mock_results = {
+                    "Trendyol": [
+                        {"text": "Ürün hasarlı geldi, kutusu ezik", "date": "2024-12-01", "rating": 1},
+                        {"text": "Farklı ürün gönderildi", "date": "2024-12-05", "rating": 1}
+                    ],
+                    "Hepsiburada": [
+                        {"text": "Ürün açıklaması yanıltıcı, gerçekte farklı", "date": "2024-11-28", "rating": 2},
+                        {"text": "Ürün kalitesi çok düşük", "date": "2024-12-10", "rating": 1}
+                    ]
+                }
+
+                # Analiz sonuçları
+                st.subheader("📊 Analiz Sonuçları")
+
+                # Toplam şikayet sayısı
+                total_complaints = sum(len(results) for platform, results in mock_results.items() if platform in platforms)
+                st.metric("Toplam Şikayet Sayısı", total_complaints)
+
+                # Platform dağılımı
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("### 📋 Platform Dağılımı")
+                    platform_counts = {platform: len(results) for platform, results in mock_results.items() if platform in platforms}
+                    if platform_counts:
+                        fig = px.pie(
+                            values=list(platform_counts.values()),
+                            names=list(platform_counts.keys()),
+                            title="Şikayetlerin Platform Dağılımı"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    st.markdown("### ⭐ Puan Dağılımı")
+                    ratings = [item['rating'] for platform, results in mock_results.items() if platform in platforms for item in results]
+                    if ratings:
+                        fig = px.histogram(
+                            x=ratings,
+                            title="Puan Dağılımı",
+                            labels={'x': 'Puan', 'y': 'Şikayet Sayısı'}
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                # Kategori analizi
+                st.markdown("### 🎯 Kategori Analizi")
+
+                # Mock kategori tahminleri
+                category_predictions = {
+                    "Ürün Kalite Sorunu": 2,
+                    "Yanlış Ürün": 1,
+                    "Ürün Açıklaması Yanıltıcı": 1
+                }
+
+                fig = px.bar(
+                    x=list(category_predictions.keys()),
+                    y=list(category_predictions.values()),
+                    title="Şikayet Kategori Dağılımı",
+                    labels={'x': 'Kategori', 'y': 'Şikayet Sayısı'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Detaylı şikayet listesi
+                st.markdown("### 📋 Detaylı Şikayet Listesi")
+
+                all_complaints = []
+                for platform, results in mock_results.items():
+                    if platform in platforms:
+                        for complaint in results:
+                            all_complaints.append({
+                                "Platform": platform,
+                                "Tarih": complaint['date'],
+                                "Puan": complaint['rating'],
+                                "Şikayet": complaint['text'],
+                                "Kategori": "Ürün Kalite Sorunu"  # Mock kategori
+                            })
+
+                if all_complaints:
+                    df_complaints = pd.DataFrame(all_complaints)
+                    st.dataframe(df_complaints, use_container_width=True)
+
+                    # CSV indirme
+                    csv = df_complaints.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Sonuçları CSV olarak indir",
+                        data=csv,
+                        file_name=f"{product_input.replace(' ', '_')}_urun_analizi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+
+def show_cross_platform_analysis():
+    """Çoklu platform analizi sayfası"""
+    st.header("🔄 Çoklu Platform Şikayet Analizi")
+
+    st.markdown("""
+    Bir ürünün tüm platformlardaki şikayetlerini karşılaştırmalı olarak analiz edin.
+    Farklı platformlardaki müşteri deneyimlerini karşılaştırabilirsiniz.
+    """)
+
+    # Ürün seçimi
+    product_input = st.text_input("Ürün Adı:", placeholder="Örnek: Samsung Galaxy S23")
+
+    if product_input:
+        if st.button("🔍 Çoklu Platform Analizi Başlat", type="primary"):
+            with st.spinner(f"{product_input} için çoklu platform analizi yapılıyor..."):
+                # Mock data - gerçek uygulamada tüm scraperlar çalıştırılacak
+                mock_results = {
+                    "Şikayetvar": {
+                        "count": 15,
+                        "avg_rating": 1.8,
+                        "top_issues": ["Kargo Gecikmesi", "Müşteri Hizmetleri Sorunu"]
+                    },
+                    "Google Maps": {
+                        "count": 8,
+                        "avg_rating": 2.1,
+                        "top_issues": ["Ürün Kalite Sorunu", "İade/Değişim Sorunu"]
+                    },
+                    "Trendyol": {
+                        "count": 22,
+                        "avg_rating": 1.5,
+                        "top_issues": ["Yanlış Ürün", "Ürün Kalite Sorunu"]
+                    },
+                    "Hepsiburada": {
+                        "count": 18,
+                        "avg_rating": 1.7,
+                        "top_issues": ["Kargo Gecikmesi", "Ürün Açıklaması Yanıltıcı"]
+                    }
+                }
+
+                # Karşılaştırma tablosu
+                st.subheader("📊 Platform Karşılaştırması")
+
+                comparison_data = []
+                for platform, data in mock_results.items():
+                    comparison_data.append({
+                        "Platform": platform,
+                        "Toplam Şikayet": data['count'],
+                        "Ortalama Puan": data['avg_rating'],
+                        "En Yaygın Sorunlar": ", ".join(data['top_issues'])
+                    })
+
+                df_comparison = pd.DataFrame(comparison_data)
+                st.dataframe(df_comparison, use_container_width=True)
+
+                # Grafikler
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("### 📋 Şikayet Sayısı Karşılaştırması")
+                    fig = px.bar(
+                        df_comparison,
+                        x='Platform',
+                        y='Toplam Şikayet',
+                        title="Platformlara Göre Şikayet Sayısı"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    st.markdown("### ⭐ Ortalama Puan Karşılaştırması")
+                    fig = px.bar(
+                        df_comparison,
+                        x='Platform',
+                        y='Ortalama Puan',
+                        title="Platformlara Göre Ortalama Puan",
+                        color='Platform'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # En yaygın sorunlar
+                st.markdown("### 🎯 Platformlara Göre En Yaygın Sorunlar")
+
+                for platform, data in mock_results.items():
+                    with st.expander(f"📋 {platform}"):
+                        st.write(f"**Toplam Şikayet:** {data['count']}")
+                        st.write(f"**Ortalama Puan:** {data['avg_rating']:.1f}")
+                        st.write(f"**En Yaygın Sorunlar:** {', '.join(data['top_issues'])}")
+
+                # Özet ve öneriler
+                st.markdown("### 💡 Analiz Özeti ve Öneriler")
+
+                # En problemli platform
+                worst_platform = max(mock_results.items(), key=lambda x: x[1]['count'])
+                st.warning(f"**En Fazla Şikayet Alan Platform:** {worst_platform[0]} ({worst_platform[1]['count']} şikayet)")
+
+                # En düşük puan
+                lowest_rating = min(mock_results.items(), key=lambda x: x[1]['avg_rating'])
+                st.error(f"**En Düşük Puan Alan Platform:** {lowest_rating[0]} ({lowest_rating[1]['avg_rating']:.1f} ortalama puan)")
+
+                # Öneriler
+                st.info("""
+                **İyileştirme Önerileri:**
+                - En fazla şikayet alan platformdaki müşteri hizmetleri süreçlerini gözden geçirin
+                - En düşük puan alan platformdaki ürün kalitesi ve teslimat süreçlerini iyileştirin
+                - Tüm platformlarda tutarlı müşteri deneyimi sağlayın
+                - Şikayet yanıt sürelerini kısaltın
+                """)
+
+                # CSV indirme
+                csv = df_comparison.to_csv(index=False)
+                st.download_button(
+                    label="📥 Karşılaştırma Sonuçlarını CSV olarak indir",
+                    data=csv,
+                    file_name=f"{product_input.replace(' ', '_')}_coklu_platform_analizi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
     .main > div {
         padding-top: 2rem;
     }

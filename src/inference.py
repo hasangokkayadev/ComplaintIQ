@@ -74,11 +74,11 @@ class ComplaintClassifier:
         self.scaler.scale_ = np.array([25, 5])   # std for text_length, word_count
         self.scaler.n_features_in_ = 2
         
-        # Mock model - her zaman "Delivery Issues" döndürür
+        # Mock model - her zaman ilk kategoriyi döndürür
         self.model = type('MockModel', (), {
             'classes_': self.categories,
-            'predict': lambda self, X: ['Delivery Issues'] * X.shape[0],
-            'predict_proba': lambda self, X: np.array([[0.8, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.06] for _ in range(X.shape[0])])
+            'predict': lambda self, X: [self.categories[0]] * X.shape[0],
+            'predict_proba': lambda self, X: np.array([[0.8] + [0.02] * (len(self.categories) - 2) + [0.06] for _ in range(X.shape[0])])
         })()
         
         logger.info("Mock model kuruldu - Demo modu aktif")
@@ -225,23 +225,26 @@ class ComplaintClassifier:
     def _get_category_description(self, category: str) -> str:
         """Kategori açıklaması"""
         descriptions = {
-            "Delivery Issues": "Teslimat problemleri, kargo gecikmeleri, hasarlı paketler",
-            "Billing Issues": "Faturalandırma hataları, ödeme sorunları, fiyat problemleri",
-            "Product Quality": "Ürün kalitesi, kusurlu ürünler, beklentiye uymayan ürünler",
-            "Customer Service": "Müşteri hizmetleri davranışları, iletişim problemleri",
-            "Technical Support": "Teknik destek, ürün kurulumu, yazılım problemleri",
-            "Return/Refund": "İade işlemleri, para iadesi, değişim talepleri",
-            "Website Issues": "Web sitesi problemleri, teknik arızalar, kullanım zorlukları",
-            "Service Outage": "Hizmet kesintileri, sistem arızaları, erişim problemleri",
-            "Fraud Issues": "Dolandırıcılık, güvenlik ihlalleri, şüpheli işlemler"
+            "Ürün Kalite Sorunu": "Ürün kalitesi, kusurlu ürünler, beklentiye uymayan ürünler",
+            "Yanlış Ürün": "Yanlış gönderilen ürünler, farklı ürün teslimatı",
+            "Eksik Ürün": "Eksik parça veya bileşenler, tamamlanmamış teslimatlar",
+            "Kargo Gecikmesi": "Teslimat gecikmeleri, zamanında teslim edilmeme",
+            "Kargo Firması Problemi": "Kargo firması hataları, dağıtım sorunları",
+            "İade/Değişim Sorunu": "İade işlemleri, para iadesi, değişim talepleri",
+            "Ödeme/Fatura Sorunu": "Faturalandırma hataları, ödeme sorunları, fiyat problemleri",
+            "Müşteri Hizmetleri Sorunu": "Müşteri hizmetleri davranışları, iletişim problemleri",
+            "Paketleme/Ambalaj Problemi": "Hasarlı paketler, yanlış ambalajlama",
+            "Ürün Açıklaması Yanıltıcı": "Yanlış ürün açıklamaları, yanıltıcı fotoğraflar",
+            "Hizmet Kalite Sorunu": "Hizmet kesintileri, sistem arızaları, erişim problemleri",
+            "Teknik/Uygulama Sorunu": "Teknik destek, ürün kurulumu, yazılım problemleri"
         }
         
         return descriptions.get(category, "Kategori bilgisi bulunamadı")
     
     def _get_priority_suggestion(self, category: str) -> str:
         """Kategori için öncelik önerisi"""
-        high_priority = ["Fraud Issues", "Service Outage", "Technical Support"]
-        medium_priority = ["Delivery Issues", "Billing Issues", "Product Quality"]
+        high_priority = ["Hizmet Kalite Sorunu", "Teknik/Uygulama Sorunu", "Ödeme/Fatura Sorunu"]
+        medium_priority = ["Kargo Gecikmesi", "Kargo Firması Problemi", "Ürün Kalite Sorunu", "Paketleme/Ambalaj Problemi"]
         
         if category in high_priority:
             return "Yüksek Öncelik"
@@ -253,15 +256,18 @@ class ComplaintClassifier:
     def _get_common_keywords(self, category: str) -> List[str]:
         """Kategori için yaygın anahtar kelimeler"""
         keywords = {
-            "Delivery Issues": ["teslimat", "kargo", "paket", "gecikme", "hasar"],
-            "Billing Issues": ["fatura", "ödeme", "ücret", "hata", "yanlış"],
-            "Product Quality": ["kalite", "kusur", "bozuk", "çürük", "iade"],
-            "Customer Service": ["hizmet", "davranış", "kaba", "yardım", "destek"],
-            "Technical Support": ["teknik", "kurulum", "yazılım", "donanım", "arıza"],
-            "Return/Refund": ["iade", "para", "değişim", "ürün", "süreç"],
-            "Website Issues": ["web", "site", "açılmıyor", "hata", "yavaş"],
-            "Service Outage": ["kesinti", "çalışmıyor", "arıza", "hizmet", "erişim"],
-            "Fraud Issues": ["dolandırıcılık", "hack", "güvenlik", "çalınmış", "şüpheli"]
+            "Ürün Kalite Sorunu": ["kalite", "kusur", "bozuk", "çürük", "iade"],
+            "Yanlış Ürün": ["yanlış", "farklı", "başka", "istedigim"],
+            "Eksik Ürün": ["eksik", "yok", "tam değil", "parça"],
+            "Kargo Gecikmesi": ["teslimat", "kargo", "paket", "gecikme", "hasar"],
+            "Kargo Firması Problemi": ["kargo firması", "kurye", "dağıtım"],
+            "İade/Değişim Sorunu": ["iade", "para", "değişim", "ürün", "süreç"],
+            "Ödeme/Fatura Sorunu": ["fatura", "ödeme", "ücret", "hata", "yanlış"],
+            "Müşteri Hizmetleri Sorunu": ["hizmet", "davranış", "kaba", "yardım", "destek"],
+            "Paketleme/Ambalaj Problemi": ["paket", "ambalaj", "kutu", "ezik"],
+            "Ürün Açıklaması Yanıltıcı": ["açıklama", "fotoğraf", "özellik"],
+            "Hizmet Kalite Sorunu": ["kesinti", "çalışmıyor", "arıza", "hizmet", "erişim"],
+            "Teknik/Uygulama Sorunu": ["teknik", "kurulum", "yazılım", "donanım", "arıza"]
         }
         
         return keywords.get(category, [])

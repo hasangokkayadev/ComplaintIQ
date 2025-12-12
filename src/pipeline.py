@@ -494,19 +494,71 @@ def run_pipeline(data_path: str = None, save: bool = True) -> Dict[str, Any]:
     """
     return pipeline.run_full_pipeline(data_path, save)
 
+def expand_categories_9_to_12(text: str, category: str) -> str:
+    """
+    9 İngilizce kategoriyi 12 Türkçe kategoriye genişlet
+
+    Args:
+        text: Şikayet metni
+        category: Orijinal kategori
+
+    Returns:
+        Genişletilmiş kategori
+    """
+    text_lower = text.lower()
+
+    # Delivery Issues mapping
+    if category == "Delivery Issues":
+        if any(keyword in text_lower for keyword in ["gecik", "geç", "zaman", "teslimat"]):
+            return "Kargo Gecikmesi"
+        elif any(keyword in text_lower for keyword in ["kurye", "dağıtım", "kargo firması", "şube", "teslim edilemedi"]):
+            return "Kargo Firması Problemi"
+        else:
+            return "Kargo Gecikmesi"  # default
+
+    # Product Quality mapping
+    elif category == "Product Quality":
+        if any(keyword in text_lower for keyword in ["kalite", "bozuk", "kusur"]):
+            return "Ürün Kalite Sorunu"
+        elif any(keyword in text_lower for keyword in ["paket", "ambalaj", "kutu", "ezik"]):
+            return "Paketleme/Ambalaj Problemi"
+        elif any(keyword in text_lower for keyword in ["açıklama", "fotoğraf", "yanıltıcı"]):
+            return "Ürün Açıklaması Yanıltıcı"
+        else:
+            return "Ürün Kalite Sorunu"  # default
+
+    # Direct mappings
+    elif category == "Customer Service":
+        return "Müşteri Hizmetleri Sorunu"
+    elif category == "Technical Support":
+        return "Teknik/Uygulama Sorunu"
+    elif category == "Return/Refund":
+        return "İade/Değişim Sorunu"
+    elif category == "Billing Issues":
+        return "Ödeme/Fatura Sorunu"
+    elif category == "Website Issues":
+        return "Teknik/Uygulama Sorunu"
+    elif category == "Service Outage":
+        return "Hizmet Kalite Sorunu"
+    elif category == "Fraud Issues":
+        return "Ödeme/Fatura Sorunu"
+
+    # Default fallback
+    return category
+
 def collect_and_train(complaints: List[Dict[str, str]], save: bool = True) -> Dict[str, Any]:
     """
     Şikayetleri topla ve modeli eğit
-    
+
     Args:
         complaints: Şikayet listesi [{'text': '...', 'category': '...'}, ...]
         save: Model kaydedilsin mi
-        
+
     Returns:
         Pipeline sonuçları
     """
     logger.info(f"Veri toplama başlıyor: {len(complaints)} şikayet")
-    
+
     # Şikayetleri collector'a ekle
     for complaint in complaints:
         data_collector.add_complaint(
@@ -514,20 +566,31 @@ def collect_and_train(complaints: List[Dict[str, str]], save: bool = True) -> Di
             source=complaint.get('source', 'manual'),
             category=complaint.get('category')
         )
-    
+
     # DataFrame'e çevir
     df = data_collector.get_dataframe()
-    
+
     if df.empty:
         logger.error("Hiç veri toplanamadı!")
         return {'status': 'error', 'message': 'No data collected'}
-    
+
+    # 9→12 label genişletme
+    df['category_new'] = df.apply(lambda row: expand_categories_9_to_12(row['text'], row['category']), axis=1)
+
     # Veriyi kaydet
     output_path = Path(DATA_PATHS.get("complaints_data", "data/raw/complaints.csv"))
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(output_path, index=False, encoding='utf-8')
+
+    # Kolon adlarını rename et
+    df_renamed = df.rename(columns={
+        'text': 'complaint_text',
+        'category': 'complaint_category',
+        'category_new': 'complaint_category_new'
+    })
+
+    df_renamed.to_csv(output_path, index=False, encoding='utf-8')
     logger.info(f"Veri kaydedildi: {output_path}")
-    
+
     # Pipeline çalıştır
     return pipeline.run_full_pipeline(str(output_path), save)
 

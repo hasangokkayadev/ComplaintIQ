@@ -162,6 +162,11 @@ async def get_supported_categories():
     try:
         categories = get_categories()
         logger.info(f"Kategoriler istendi: {len(categories)} kategori")
+
+        # 12'li kategori setini doğrula
+        if len(categories) != 12:
+            logger.warning(f"Beklenen 12 kategori, bulunan: {len(categories)}")
+
         return categories
     except Exception as e:
         logger.error(f"Kategori listesi hatası: {e}")
@@ -198,18 +203,23 @@ async def get_system_info():
     try:
         import time
         uptime = "2024-12-08T15:54:00Z"  # Simplified for demo
-        
+
+        # 12'li kategori setini doğrula
+        supported_categories = BUSINESS_RULES["supported_categories"]
+        if len(supported_categories) != 12:
+            logger.warning(f"Beklenen 12 kategori, bulunan: {len(supported_categories)}")
+
         info = SystemInfo(
             model_type="LogisticRegression",
             categories=list(classifier.categories),
-            supported_categories=BUSINESS_RULES["supported_categories"],
+            supported_categories=supported_categories,
             min_confidence_threshold=BUSINESS_RULES["min_confidence_threshold"],
             version=APP_CONFIG["version"],
             uptime=uptime
         )
-        
+
         return info
-        
+
     except Exception as e:
         logger.error(f"Sistem bilgisi hatası: {e}")
         raise HTTPException(status_code=500, detail="Sistem bilgileri alınamadı")

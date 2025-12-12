@@ -1,0 +1,20 @@
+{
+  "model_type": "LogisticRegression",
+  "categories": [
+    "Billing Issues",
+    "Customer Service",
+    "Delivery Issues",
+    "Fraud Issues",
+    "Product Quality",
+    "Return/Refund",
+    "Service Outage",
+    "Technical Support",
+    "Website Issues"
+  ],
+  "features": 446,
+  "training_info": {
+    "is_trained": true,
+    "has_vectorizer": true,
+    "has_scaler": true
+  }
+}
